@@ -17,12 +17,14 @@ import { useSyncBootstrap } from "@/hooks/useSyncBootstrap";
 import { useTaskSync } from "@/hooks/useTaskSync";
 import { useDeleteSync } from "@/hooks/useDeleteSync";
 import { useTaskDeletion } from "@/hooks/useTaskDeletion";
+import { useCategorySync } from "@/hooks/useCategorySync";
 import { useCalenStore } from "@/stores/useCalenStore";
 
 export const CalenApp = () => {
   useSyncBootstrap();
   useTaskSync();
   useDeleteSync();
+  useCategorySync();
 
   const { user } = useUser();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -59,7 +61,7 @@ export const CalenApp = () => {
     <div className="h-screen bg-linear-to-br from-zinc-50 via-zinc-100/30 to-zinc-50 text-zinc-900 dark:from-zinc-950 dark:via-zinc-900/30 dark:to-zinc-950 dark:text-zinc-50">
       <main className="h-full px-6 py-6">
         <section className="flex h-full flex-col rounded-[28px] border border-zinc-100 bg-white/95 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90">
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex h-full flex-col overflow-hidden p-5">
             <TaskView />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 px-5 py-4 text-xs font-semibold text-zinc-500 dark:border-white/10 dark:text-zinc-400">

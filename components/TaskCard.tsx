@@ -45,9 +45,16 @@ export const TaskCard = ({ task, accentColor }: TaskCardProps) => {
               className="h-2 w-2 rounded-full"
               style={{ backgroundColor: accentColor }}
             />
-            <p className="text-xs font-semibold uppercase text-zinc-400 dark:text-zinc-500">
-              {task.category}
-            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              {task.categories.map((category) => (
+                <span
+                  key={category}
+                  className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
+                >
+                  {category}
+                </span>
+              ))}
+            </div>
           </div>
           <h3
             className={`text-base font-semibold ${

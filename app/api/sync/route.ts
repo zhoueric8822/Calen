@@ -5,19 +5,47 @@ import { convexClient } from "@/lib/server/convexClient";
 import { getGoogleProfile } from "@/lib/server/googleAuth";
 import { api } from "@/convex/_generated/api";
 
-const mapTaskFromConvex = (task: any): Task => ({
-  id: task.clientId ?? task._id,
-  title: task.title,
-  description: task.description ?? undefined,
-  deadline: task.deadline,
-  category: task.category,
-  importance: task.importance,
-  completed: task.completed,
-  createdAt: task.createdAt,
-  updatedAt: task.updatedAt ?? undefined,
-  subtasks: task.subtasks ?? [],
-  convexId: task._id,
-});
+type ConvexTask = {
+  _id: string;
+  clientId?: string;
+  title: string;
+  description?: string;
+  deadline: string;
+  category?: string; // Old format
+  categories?: string[]; // New format
+  importance: number;
+  completed: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  subtasks?: Array<{ id: string; title: string; completed: boolean }>;
+};
+
+const mapTaskFromConvex = (task: ConvexTask): Task => {
+  // Migration: handle old single category format
+  let categories: string[];
+  if (task.categories) {
+    categories = task.categories;
+  } else if (task.category) {
+    // Old format: convert single category to array
+    categories = [task.category];
+  } else {
+    categories = [];
+  }
+
+  return {
+    id: task.clientId ?? task._id,
+    title: task.title,
+    description: task.description ?? undefined,
+    deadline: task.deadline,
+    categories,
+    importance: task.importance,
+    completed: task.completed,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt ?? undefined,
+    subtasks: task.subtasks ?? [],
+    convexId: task._id,
+  };
+};
 
 export const GET = async () => {
   const profile = await getGoogleProfile();
@@ -76,7 +104,7 @@ export const POST = async (request: Request) => {
       title: task.title,
       description: task.description,
       deadline: task.deadline,
-      category: task.category,
+      categories: task.categories,
       importance: task.importance,
       completed: task.completed,
       createdAt: task.createdAt,

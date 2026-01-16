@@ -31,7 +31,7 @@ export const TaskModal = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [category, setCategory] = useState("Work");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [importance, setImportance] = useState(3);
   const [subtasks, setSubtasks] = useState<Subtask[]>(initialSubtasks);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
@@ -44,7 +44,7 @@ export const TaskModal = () => {
       setDeadline(
         new Date(editingTask.deadline).toISOString().slice(0, 16)
       );
-      setCategory(editingTask.category);
+      setSelectedCategories(editingTask.categories);
       setImportance(editingTask.importance);
       setSubtasks(
         editingTask.subtasks.length
@@ -65,11 +65,21 @@ export const TaskModal = () => {
     setTitle("");
     setDescription("");
     setDeadline("");
-    setCategory("Work");
+    setSelectedCategories([]);
     setImportance(3);
     setSubtasks(initialSubtasks);
     setShowCategoryInput(false);
     setNewCategoryName("");
+  };
+
+  const handleDeadlineChange = (value: string) => {
+    // If user only selected a date (not time), default to 23:59
+    if (value.length === 10) {
+      // Format: YYYY-MM-DD, add 23:59
+      setDeadline(value + "T23:59");
+    } else {
+      setDeadline(value);
+    }
   };
 
   const handleClose = () => {
@@ -88,7 +98,7 @@ export const TaskModal = () => {
       title: title.trim(),
       description: description.trim() || undefined,
       deadline: new Date(deadline).toISOString(),
-      category: category.trim(),
+      categories: selectedCategories,
       importance,
       subtasks: subtasks.filter((subtask) => subtask.title.trim().length > 0),
     };
@@ -110,10 +120,19 @@ export const TaskModal = () => {
 
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return;
-    addCategory(newCategoryName.trim());
-    setCategory(newCategoryName.trim());
+    const trimmedCategory = newCategoryName.trim();
+    addCategory(trimmedCategory);
+    setSelectedCategories((prev) => [...prev, trimmedCategory]);
     setNewCategoryName("");
     setShowCategoryInput(false);
+  };
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+    );
   };
 
   return (
@@ -168,51 +187,62 @@ export const TaskModal = () => {
               type="datetime-local"
               className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
               value={deadline}
-              onChange={(event) => setDeadline(event.target.value)}
+              onChange={(event) => handleDeadlineChange(event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase text-zinc-400 dark:text-zinc-500">
-              Category
-            </label>
-            {showCategoryInput ? (
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase text-zinc-400 dark:text-zinc-500">
+                Categories
+              </label>
+              <button
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/20"
+                onClick={() => setShowCategoryInput(true)}
+              >
+                <Plus className="h-4 w-4" weight="bold" />
+              </button>
+            </div>
+            {showCategoryInput && (
               <div className="flex gap-2">
                 <input
-                  className="flex-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
+                  className="flex-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="New category"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAddCategory();
+                    if (e.key === "Escape") setShowCategoryInput(false);
                   }}
+                  autoFocus
                 />
                 <button
-                  className="rounded-2xl bg-[#007AFF] px-4 text-sm font-semibold text-white"
+                  className="rounded-2xl bg-[#007AFF] px-4 text-sm font-semibold text-white hover:bg-[#0066d6]"
                   onClick={handleAddCategory}
                 >
                   Add
                 </button>
               </div>
-            ) : (
-              <div className="flex gap-2">
-                <select
-                  className="flex-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                >
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
                 <button
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
-                  onClick={() => setShowCategoryInput(true)}
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleCategory(cat)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    selectedCategories.includes(cat)
+                      ? "bg-[#007AFF] text-white"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5"
+                  }`}
                 >
-                  <Plus className="h-4 w-4" weight="bold" />
+                  {cat}
                 </button>
-              </div>
+              ))}
+            </div>
+            {selectedCategories.length === 0 && (
+              <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                No categories selected
+              </p>
             )}
           </div>
         </div>

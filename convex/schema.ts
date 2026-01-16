@@ -7,6 +7,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     picture: v.optional(v.string()),
     googleSub: v.optional(v.string()),
+    customCategories: v.optional(v.array(v.string())),
     createdAt: v.string(),
   }).index("by_email", ["email"]),
   tasks: defineTable({
@@ -15,7 +16,7 @@ export default defineSchema({
     title: v.string(),
     description: v.optional(v.string()),
     deadline: v.string(),
-    category: v.string(),
+    categories: v.array(v.string()),
     importance: v.number(),
     completed: v.boolean(),
     createdAt: v.string(),

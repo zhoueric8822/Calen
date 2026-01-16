@@ -9,7 +9,7 @@ export type Task = {
   title: string;
   description?: string;
   deadline: string;
-  category: string;
+  categories: string[];
   importance: number;
   completed: boolean;
   createdAt: string;
@@ -27,7 +27,6 @@ export type UserProfile = {
 
 export type Filters = {
   category: string;
-  importance: number | "all";
   status: "all" | "active" | "completed" | "overdue";
 };
 

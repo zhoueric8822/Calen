@@ -27,7 +27,11 @@ type CalenState = {
   sync: SyncState;
   categories: string[];
   pendingDeletions: string[];
+  viewMode: "list" | "timeline";
+  searchQuery: string;
   setFilters: (filters: Partial<Filters>) => void;
+  setViewMode: (mode: "list" | "timeline") => void;
+  setSearchQuery: (query: string) => void;
   openModal: (modal: keyof ModalState) => void;
   closeModal: (modal: keyof ModalState) => void;
   openEditTask: (taskId: string) => void;
@@ -46,11 +50,13 @@ type CalenState = {
   addSubtask: (taskId: string, title: string) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   addCategory: (category: string) => void;
+  replaceCategories: (categories: string[]) => void;
+  syncCategoriesPending: boolean;
+  setSyncCategoriesPending: (pending: boolean) => void;
 };
 
 const defaultFilters: Filters = {
   category: "all",
-  importance: "all",
   status: "all",
 };
 
@@ -64,10 +70,14 @@ export const useCalenStore = create<CalenState>()(
       sync: { status: "idle" },
       categories: ["Work", "School", "Fitness"],
       pendingDeletions: [],
+      viewMode: "list",
+      searchQuery: "",
       setFilters: (filters) =>
         set((state) => ({
           filters: { ...state.filters, ...filters },
         })),
+      setViewMode: (mode) => set({ viewMode: mode }),
+      setSearchQuery: (query) => set({ searchQuery: query }),
       openModal: (modal) =>
         set((state) => ({ modals: { ...state.modals, [modal]: true } })),
       closeModal: (modal) =>
@@ -175,8 +185,14 @@ export const useCalenStore = create<CalenState>()(
           if (state.categories.includes(category)) {
             return state;
           }
-          return { categories: [...state.categories, category] };
+          return { 
+            categories: [...state.categories, category],
+            syncCategoriesPending: true,
+          };
         }),
+      replaceCategories: (categories) => set({ categories }),
+      syncCategoriesPending: false,
+      setSyncCategoriesPending: (pending) => set({ syncCategoriesPending: pending }),
     }),
     {
       name: "calen-storage",
@@ -185,6 +201,7 @@ export const useCalenStore = create<CalenState>()(
         filters: state.filters,
         categories: state.categories,
         pendingDeletions: state.pendingDeletions,
+        viewMode: state.viewMode,
       }),
     }
   )
