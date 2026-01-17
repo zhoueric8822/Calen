@@ -28,9 +28,12 @@ export const CalenApp = () => {
 
   const { user } = useUser();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showCompletedCount, setShowCompletedCount] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
   const tasks = useCalenStore((state) => state.tasks);
+  const totalPending = tasks.filter((task) => !task.completed).length;
+  const totalCompleted = tasks.filter((task) => task.completed).length;
   const deleteConfirmTaskId = useCalenStore(
     (state) => state.modals.deleteConfirm
   );
@@ -58,14 +61,14 @@ export const CalenApp = () => {
   }, []);
 
   return (
-    <div className="h-screen bg-linear-to-br from-zinc-50 via-zinc-100/30 to-zinc-50 text-zinc-900 dark:from-zinc-950 dark:via-zinc-900/30 dark:to-zinc-950 dark:text-zinc-50">
-      <main className="h-full px-6 py-6">
-        <section className="flex h-full flex-col rounded-[28px] border border-zinc-100 bg-white/95 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90">
-          <div className="flex h-full flex-col overflow-hidden p-5">
+    <div className="h-dvh bg-linear-to-br from-indigo-50 via-blue-100/50 to-violet-50 text-zinc-900 dark:from-zinc-950 dark:via-blue-900/50 dark:to-zinc-950 dark:text-zinc-50">
+      <main className="h-full px-2 py-2 md:px-6 md:py-6">
+        <section className="flex h-full flex-col rounded-[16px] md:rounded-[25px] border border-zinc-200 bg-white/90 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90">
+          <div className="flex h-full flex-col overflow-hidden p-5 py-0">
             <TaskView />
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 px-5 py-4 text-xs font-semibold text-zinc-500 dark:border-white/10 dark:text-zinc-400">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-zinc-100 px-5 py-4 text-xs font-semibold text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+            <div className="flex items-center gap-3">
               <SignedIn>
                 <div ref={profileRef} className="relative">
                   <button
@@ -114,6 +117,19 @@ export const CalenApp = () => {
                 </SignInButton>
               </SignedOut>
             </div>
+            
+            {/* Task counter toggle */}
+            <button
+              onClick={() => setShowCompletedCount(!showCompletedCount)}
+              className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-sm transition hover:border-zinc-300 dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/20"
+            >
+              <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+                {showCompletedCount ? totalCompleted : totalPending}
+              </span>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                {showCompletedCount ? "done" : "left"}
+              </span>
+            </button>
           </div>
         </section>
       </main>

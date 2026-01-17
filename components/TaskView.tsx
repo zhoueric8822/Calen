@@ -77,7 +77,7 @@ export const TaskView = () => {
   return (
     <section className="flex h-full flex-col">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-20 space-y-4 bg-white/95 pb-4 backdrop-blur-sm dark:bg-zinc-900/95">
+      <div className="sticky top-0 z-20 space-y-4 py-5 bg-white/95 pb-4 backdrop-blur-sm dark:bg-zinc-900/95">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-zinc-400 dark:text-zinc-500">
@@ -87,12 +87,12 @@ export const TaskView = () => {
               Todo
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* View Toggle */}
-            <div className="flex rounded-full border border-zinc-200 bg-zinc-100 p-1 dark:border-white/10 dark:bg-white/5">
+            <div className="flex rounded-full border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/5">
               <button
                 onClick={() => setViewMode("list")}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold transition ${
                   viewMode === "list"
                     ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -103,7 +103,7 @@ export const TaskView = () => {
               </button>
               <button
                 onClick={() => setViewMode("timeline")}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold transition ${
                   viewMode === "timeline"
                     ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -143,7 +143,7 @@ export const TaskView = () => {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 space-y-3 overflow-y-auto">
+      <div className="flex-1 space-y-3 overflow-y-auto py-6 scrollbar-hide">
         {viewMode === "timeline" ? (
           <TimelineView tasks={sorted} />
         ) : (
@@ -181,11 +181,12 @@ export const TaskView = () => {
                 </div>
 
                 {archivedTasks.map((task, index) => (
-                  <TaskCard
-                    key={task.id}
+                  <div className="grayscale-90" key={task.id}>
+                    <TaskCard
                     task={task}
                     accentColor={getAccentColor(index, archivedTasks.length)}
                   />
+                  </div>
                 ))}
               </>
             )}

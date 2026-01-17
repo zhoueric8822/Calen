@@ -101,7 +101,7 @@ export const TaskCard = ({ task, accentColor }: TaskCardProps) => {
         </div>
         <div className="h-2 w-full rounded-full bg-zinc-100 dark:bg-white/10">
           <div
-            className="h-full rounded-full bg-zinc-800 dark:bg-white/70"
+            className="h-full rounded-full bg-[#007AFF]/60 dark:bg-[#007AFF]"
             style={{ width: `${completion}%` }}
           />
         </div>
