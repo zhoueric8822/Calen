@@ -85,7 +85,7 @@ export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) 
               <X className="h-4 w-4" weight="bold" />
             </button>
           </div>
-          <div className="max-h-[66vh] overflow-y-auto px-6 py-5">{children}</div>
+          <div className="max-h-[75vh] overflow-y-auto px-6 py-5">{children}</div>
           {footer ? (
             <div className="border-t border-zinc-100 px-6 py-4 dark:border-zinc-800">{footer}</div>
           ) : null}
@@ -136,7 +136,7 @@ export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) 
               <X className="h-4 w-4" weight="bold" />
             </button>
           </div>
-          <div className="max-h-[70vh] overflow-y-auto px-6 py-5">{children}</div>
+          <div className="max-h-[70dvh] overflow-y-auto px-6 py-5">{children}</div>
           {footer ? (
             <div className="border-t border-zinc-100 px-6 py-4 dark:border-zinc-800">{footer}</div>
           ) : null}
