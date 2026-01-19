@@ -11,17 +11,32 @@ type TimelineViewProps = {
 };
 
 export const TimelineView = ({ tasks }: TimelineViewProps) => {
-  const timeline = useMemo(() => {
-    if (!tasks.length) return [];
+  const today = startOfDay(new Date());
+  
+  const { overdueTasks, timeline } = useMemo(() => {
+    if (!tasks.length) return { overdueTasks: [], timeline: [] };
 
     // Sort tasks by deadline
     const sorted = [...tasks].sort(
       (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
     );
 
-    // Group tasks by date
-    const grouped = new Map<string, Task[]>();
+    // Separate overdue tasks (deadline before today, not completed)
+    const overdue: Task[] = [];
+    const upcoming: Task[] = [];
+    
     sorted.forEach((task) => {
+      const taskDate = startOfDay(parseISO(task.deadline));
+      if (!task.completed && taskDate < today) {
+        overdue.push(task);
+      } else if (taskDate >= today) {
+        upcoming.push(task);
+      }
+    });
+
+    // Group upcoming tasks by date (only from today forward)
+    const grouped = new Map<string, Task[]>();
+    upcoming.forEach((task) => {
       const date = format(parseISO(task.deadline), "yyyy-MM-dd");
       if (!grouped.has(date)) {
         grouped.set(date, []);
@@ -30,22 +45,52 @@ export const TimelineView = ({ tasks }: TimelineViewProps) => {
     });
 
     // Convert to array and add date info
-    return Array.from(grouped.entries()).map(([date, tasks]) => ({
+    const timelineData = Array.from(grouped.entries()).map(([date, tasks]) => ({
       date,
       dateObj: parseISO(date),
       tasks,
     }));
-  }, [tasks]);
-
-  const today = startOfDay(new Date());
+    
+    return { overdueTasks: overdue, timeline: timelineData };
+  }, [tasks, today]);
 
   return (
-    <div className="relative pl-8">
+    <div className="relative pl-8 pr-1">
       {/* Vertical timeline line */}
       <div className="absolute left-2 top-0 h-full w-0.5 bg-[#007AFF]/20" />
 
-      {timeline.length ? (
+      {overdueTasks.length > 0 || timeline.length > 0 ? (
         <div className="space-y-8">
+          {/* Overdue Tasks Section - Pinned at top */}
+          {overdueTasks.length > 0 && (
+            <div className="relative">
+              {/* Red dot for overdue */}
+              <div className="absolute -left-[35px] top-2 h-4 w-4 rounded-full border-2 border-red-500 bg-white dark:bg-zinc-900" />
+
+              {/* Overdue header */}
+              <div className="mb-4">
+                <h3 className="text-xl font-bold text-red-500">
+                  Overdue
+                </h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  {overdueTasks.length} {overdueTasks.length === 1 ? "task" : "tasks"}
+                </p>
+              </div>
+
+              {/* Overdue tasks */}
+              <div className="space-y-3">
+                {overdueTasks.map((task, index) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    accentColor={getAccentColor(index, overdueTasks.length)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Regular timeline from today onward */}
           {timeline.map(({ date, dateObj, tasks: dateTasks }) => {
             const daysFromToday = differenceInDays(dateObj, today);
             const isToday = daysFromToday === 0;
@@ -60,7 +105,7 @@ export const TimelineView = ({ tasks }: TimelineViewProps) => {
             return (
               <div key={date} className="relative">
                 {/* Blue dot on timeline */}
-                <div className="absolute -left-[30px] top-2 h-4 w-4 rounded-full border-2 border-[#007AFF] bg-white dark:bg-zinc-900" />
+                <div className="absolute -left-[35px] top-2 h-4 w-4 rounded-full border-2 border-[#007AFF] bg-white dark:bg-zinc-900" />
 
                 {/* Date header */}
                 <div className="mb-4">

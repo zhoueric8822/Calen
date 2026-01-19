@@ -67,12 +67,12 @@ export const CalenApp = () => {
           <div className="flex h-full flex-col overflow-hidden p-5 py-0">
             <TaskView />
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-zinc-100 px-5 py-4 text-xs font-semibold text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+          <div className="flex absolute bottom-0 left-0 right-0 rounded-full z-50 flex-wrap items-center justify-between gap-3 border-t border-white/20 px-5 py-4 text-xs font-semibold text-zinc-500 bg-white/60 backdrop-blur-lg dark:border-zinc-800/50 dark:bg-zinc-900/75 dark:text-zinc-400">
             <div className="flex items-center gap-3">
               <SignedIn>
                 <div ref={profileRef} className="relative">
                   <button
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm transition hover:border-zinc-300 dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/20"
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 shadow-sm transition hover:border-zinc-300 dark:border-white/10 dark:hover:border-white/20"
                     onClick={() => setProfileOpen((prev) => !prev)}
                     aria-label="Open profile menu"
                   >
@@ -88,7 +88,7 @@ export const CalenApp = () => {
                     )}
                   </button>
                   {profileOpen ? (
-                    <div className="absolute bottom-full left-0 mb-2 w-48 rounded-2xl border border-zinc-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-zinc-900">
+                    <div className="absolute bottom-full left-0 mb-2 w-48 rounded-2xl border border-zinc-100 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-zinc-900 z-50">
                       <div className="border-b border-zinc-100 px-3 py-2.5 dark:border-white/10">
                         <p className="truncate text-xs font-semibold text-zinc-900 dark:text-zinc-50">
                           {user?.fullName || "User"}
@@ -121,7 +121,7 @@ export const CalenApp = () => {
             {/* Task counter toggle */}
             <button
               onClick={() => setShowCompletedCount(!showCompletedCount)}
-              className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-sm transition hover:border-zinc-300 dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/20"
+              className="flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-2 text-sm transition hover:border-zinc-300 dark:border-white/10 dark:hover:border-white/20"
             >
               <span className="font-semibold text-zinc-900 dark:text-zinc-50">
                 {showCompletedCount ? totalCompleted : totalPending}
