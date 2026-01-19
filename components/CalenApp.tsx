@@ -13,17 +13,23 @@ import { useEffect, useRef, useState } from "react";
 import { TaskModal } from "@/components/TaskModal";
 import { TaskView } from "@/components/TaskView";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { DaysMatterModal } from "@/components/DaysMatterModal";
 import { useSyncBootstrap } from "@/hooks/useSyncBootstrap";
 import { useTaskSync } from "@/hooks/useTaskSync";
 import { useDeleteSync } from "@/hooks/useDeleteSync";
 import { useTaskDeletion } from "@/hooks/useTaskDeletion";
+import { useDaysMatterSync } from "@/hooks/useDaysMatterSync";
+import { useDaysMatterDeleteSync } from "@/hooks/useDaysMatterDeleteSync";
+import { useDaysMatterDeletion } from "@/hooks/useDaysMatterDeletion";
 import { useCategorySync } from "@/hooks/useCategorySync";
 import { useCalenStore } from "@/stores/useCalenStore";
 
 export const CalenApp = () => {
   useSyncBootstrap();
   useTaskSync();
+  useDaysMatterSync();
   useDeleteSync();
+  useDaysMatterDeleteSync();
   useCategorySync();
 
   const { user } = useUser();
@@ -32,21 +38,37 @@ export const CalenApp = () => {
   const profileRef = useRef<HTMLDivElement | null>(null);
 
   const tasks = useCalenStore((state) => state.tasks);
+  const daysMatterItems = useCalenStore((state) => state.daysMatterItems);
   const totalPending = tasks.filter((task) => !task.completed).length;
   const totalCompleted = tasks.filter((task) => task.completed).length;
   const deleteConfirmTaskId = useCalenStore(
     (state) => state.modals.deleteConfirm
   );
+  const deleteDaysMatterConfirmId = useCalenStore(
+    (state) => state.modals.deleteDaysMatterConfirm
+  );
   const closeDeleteConfirm = useCalenStore((state) => state.closeDeleteConfirm);
+  const closeDeleteDaysMatterConfirm = useCalenStore((state) => state.closeDeleteDaysMatterConfirm);
   const { performDelete } = useTaskDeletion();
+  const { performDelete: performDaysMatterDelete } = useDaysMatterDeletion();
 
   const taskToDelete = deleteConfirmTaskId
     ? tasks.find((t) => t.id === deleteConfirmTaskId)
     : null;
 
-  const handleConfirmDelete = () => {
+  const daysMatterToDelete = deleteDaysMatterConfirmId
+    ? daysMatterItems.find((item) => item.id === deleteDaysMatterConfirmId)
+    : null;
+
+  const handleConfirmDeleteTask = () => {
     if (!deleteConfirmTaskId) return;
     performDelete(deleteConfirmTaskId);
+  };
+
+  const handleConfirmDeleteDaysMatter = () => {
+    if (!deleteDaysMatterConfirmId) return;
+    performDaysMatterDelete(deleteDaysMatterConfirmId);
+    closeDeleteDaysMatterConfirm();
   };
 
   useEffect(() => {
@@ -67,7 +89,7 @@ export const CalenApp = () => {
           <div className="flex h-full flex-col overflow-hidden p-5 py-0">
             <TaskView />
           </div>
-          <div className="flex absolute bottom-0 left-0 right-0 rounded-full z-50 flex-wrap items-center justify-between gap-3 border-t border-white/20 px-5 py-4 text-xs font-semibold text-zinc-500 bg-white/60 backdrop-blur-lg dark:border-zinc-800/50 dark:bg-zinc-900/75 dark:text-zinc-400">
+          <div className="flex absolute bottom-0 left-0 right-0 rounded-full z-50 flex-wrap items-center justify-between gap-3 border-t border-white/20 px-5 py-4 text-xs font-semibold text-zinc-500 bg-white/80 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/75 dark:text-zinc-400">
             <div className="flex items-center gap-3">
               <SignedIn>
                 <div ref={profileRef} className="relative">
@@ -135,11 +157,19 @@ export const CalenApp = () => {
       </main>
 
       <TaskModal />
+      <DaysMatterModal />
       <DeleteConfirmModal
         isOpen={!!deleteConfirmTaskId}
         onClose={closeDeleteConfirm}
-        onConfirm={handleConfirmDelete}
+        onConfirm={handleConfirmDeleteTask}
         taskTitle={taskToDelete?.title ?? ""}
+      />
+      <DeleteConfirmModal
+        isOpen={!!deleteDaysMatterConfirmId}
+        onClose={closeDeleteDaysMatterConfirm}
+        onConfirm={handleConfirmDeleteDaysMatter}
+        taskTitle={daysMatterToDelete?.title ?? ""}
+        itemType="event"
       />
     </div>
   );

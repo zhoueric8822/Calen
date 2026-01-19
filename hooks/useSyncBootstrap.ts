@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
 
-import { bootstrapSync } from "@/lib/sync";
+import { bootstrapDaysMatterSync, bootstrapSync } from "@/lib/sync";
 import { useCalenStore } from "@/stores/useCalenStore";
 
 export const useSyncBootstrap = () => {
@@ -9,6 +9,12 @@ export const useSyncBootstrap = () => {
   const setSyncStatus = useCalenStore((state) => state.setSyncStatus);
   const replaceTasks = useCalenStore((state) => state.replaceTasks);
   const updateTasks = useCalenStore((state) => state.updateTasks);
+  const replaceDaysMatterItems = useCalenStore(
+    (state) => state.replaceDaysMatterItems
+  );
+  const updateDaysMatterItems = useCalenStore(
+    (state) => state.updateDaysMatterItems
+  );
   const hasBootstrapped = useRef(false);
 
   useEffect(() => {
@@ -20,7 +26,7 @@ export const useSyncBootstrap = () => {
 
     const run = async () => {
       if (!active) return;
-      const { tasks } = useCalenStore.getState();
+      const { tasks, daysMatterItems } = useCalenStore.getState();
 
       await bootstrapSync(
         {
@@ -30,6 +36,15 @@ export const useSyncBootstrap = () => {
         },
         tasks
       );
+
+      await bootstrapDaysMatterSync(
+        {
+          setSyncStatus,
+          replaceDaysMatterItems,
+          updateDaysMatterItems,
+        },
+        daysMatterItems
+      );
     };
 
     run();
@@ -37,6 +52,14 @@ export const useSyncBootstrap = () => {
     return () => {
       active = false;
     };
-  }, [isLoaded, isSignedIn, setSyncStatus, replaceTasks, updateTasks]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    setSyncStatus,
+    replaceTasks,
+    updateTasks,
+    replaceDaysMatterItems,
+    updateDaysMatterItems,
+  ]);
 };
 

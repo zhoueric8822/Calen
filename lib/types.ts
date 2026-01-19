@@ -19,6 +19,19 @@ export type Task = {
   syncPending?: boolean;
 };
 
+export type DaysMatterItem = {
+  id: string;
+  title: string;
+  description?: string;
+  targetDate: string;
+  type: "countdown" | "countup";
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt?: string;
+  convexId?: string;
+  syncPending?: boolean;
+};
+
 export type UserProfile = {
   email: string;
   name?: string;

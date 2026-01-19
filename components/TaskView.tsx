@@ -1,6 +1,6 @@
 "use client";
 
-import { List, CalendarBlank, Plus, MagnifyingGlass } from "@phosphor-icons/react";
+import { List, Rows, Heart, Plus, MagnifyingGlass } from "@phosphor-icons/react";
 import { isBefore, parseISO } from "date-fns";
 import Fuse from "fuse.js";
 import { useMemo } from "react";
@@ -8,11 +8,13 @@ import { useMemo } from "react";
 import { FilterBar } from "@/components/FilterBar";
 import { TaskCard } from "@/components/TaskCard";
 import { TimelineView } from "@/components/TimelineView";
+import { DaysMatterView } from "@/components/DaysMatterView";
 import { getAccentColor, getTaskScore } from "@/lib/priority";
 import { useCalenStore } from "@/stores/useCalenStore";
 
 export const TaskView = () => {
   const tasks = useCalenStore((state) => state.tasks);
+  const daysMatterItems = useCalenStore((state) => state.daysMatterItems);
   const filters = useCalenStore((state) => state.filters);
   const viewMode = useCalenStore((state) => state.viewMode);
   const searchQuery = useCalenStore((state) => state.searchQuery);
@@ -74,27 +76,37 @@ export const TaskView = () => {
     }
   };
 
+  const getTitle = () => {
+    if (viewMode === "daysmatter") return "Days Matter";
+    return "Todo";
+  };
+
+  const getSubtitle = () => {
+    if (viewMode === "daysmatter") return "Important dates";
+    return "Priority tasks";
+  };
+
   return (
     <section className="relative flex h-full flex-col">
       {/* Sticky Header */}
-      <div className="absolute left-0 right-0 top-0 z-200 space-y-4 py-5 pb-4 bg-white/60 backdrop-blur-lg border-b border-white/20 dark:bg-zinc-900/75 dark:border-zinc-800/50">
+      <div className="absolute left-0 right-0 top-0 z-200 space-y-4 border border-white/20 bg-white/80 py-5 pb-4 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/75">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-zinc-400 dark:text-zinc-500">
-              Priority tasks
+              {getSubtitle()}
             </p>
             <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-              Todo
+              {getTitle()}
             </h2>
           </div>
           <div className="flex items-center gap-3">
             {/* View Toggle */}
-            <div className="flex rounded-full border border-zinc-200 dark:border-white/10">
+            <div className="flex rounded-full border border-zinc-200 bg-zinc-100/50 p-1 dark:border-white/10 dark:bg-white/5">
               <button
                 onClick={() => setViewMode("list")}
-                className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold transition ${
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold transition ${
                   viewMode === "list"
-                    ? "text-zinc-900 shadow-sm dark:text-zinc-50"
+                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                 }`}
                 aria-label="List view"
@@ -103,48 +115,65 @@ export const TaskView = () => {
               </button>
               <button
                 onClick={() => setViewMode("timeline")}
-                className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold transition ${
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold transition ${
                   viewMode === "timeline"
-                    ? "text-zinc-900 shadow-sm dark:text-zinc-50"
+                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                 }`}
                 aria-label="Timeline view"
               >
-                <CalendarBlank className="h-4 w-4" weight="bold" />
+                <Rows className="h-4 w-4" weight="bold" />
+              </button>
+              <button
+                onClick={() => setViewMode("daysmatter")}
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold transition ${
+                  viewMode === "daysmatter"
+                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
+                    : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                }`}
+                aria-label="Days Matter view"
+              >
+                <Heart className="h-4 w-4" weight="bold" />
               </button>
             </div>
             <button
               className="flex h-10 w-10 items-center justify-center rounded-full bg-[#007AFF] text-white transition hover:bg-[#0066d6]"
-              onClick={() => openModal("task")}
-              aria-label="Add task"
+              onClick={() => openModal(viewMode === "daysmatter" ? "daysMatter" : "task")}
+              aria-label={viewMode === "daysmatter" ? "Add event" : "Add task"}
             >
               <Plus className="h-5 w-5" weight="bold" />
             </button>
           </div>
         </div>
 
-        {/* Search Bar with inline filters on desktop */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <MagnifyingGlass
-              className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
-              weight="bold"
-            />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-full border border-zinc-200 py-2 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-0 transition focus:border-zinc-400 dark:border-white/10 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-white/20"
-            />
+        {/* Search Bar with inline filters on desktop - hide for Days Matter */}
+        {viewMode !== "daysmatter" && (
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <MagnifyingGlass
+                className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
+                weight="bold"
+              />
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-full border border-zinc-200 py-2 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-0 transition focus:border-zinc-400 dark:border-white/10 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-white/20"
+              />
+            </div>
+            <FilterBar />
           </div>
-          <FilterBar />
-        </div>
+        )}
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 space-y-3 overflow-y-auto px-1 pt-35 pb-20 scrollbar-hide">
-        {viewMode === "timeline" ? (
+      <div className={`flex-1 space-y-3 overflow-y-auto px-1 pb-20 scrollbar-hide ${
+        viewMode === "daysmatter" ? "pt-24" : "pt-35"
+      }`}>
+        {viewMode === "daysmatter" ? (
+          <DaysMatterView items={daysMatterItems} />
+        ) : viewMode === "timeline" ? (
           <TimelineView tasks={sorted} />
         ) : (
           <div className="space-y-3">

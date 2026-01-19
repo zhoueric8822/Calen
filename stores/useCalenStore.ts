@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { Filters, Task, UserProfile } from "@/lib/types";
+import type { DaysMatterItem, Filters, Task, UserProfile } from "@/lib/types";
 
 type SyncState = {
   status: "idle" | "syncing" | "error";
@@ -17,20 +17,25 @@ type ModalState = {
   task: boolean;
   editTask: string | null;
   deleteConfirm: string | null;
+  daysMatter: boolean;
+  editDaysMatter: string | null;
+  deleteDaysMatterConfirm: string | null;
 };
 
 type CalenState = {
   tasks: Task[];
+  daysMatterItems: DaysMatterItem[];
   filters: Filters;
   modals: ModalState;
   auth: AuthState;
   sync: SyncState;
   categories: string[];
   pendingDeletions: string[];
-  viewMode: "list" | "timeline";
+  daysMatterPendingDeletions: string[];
+  viewMode: "list" | "timeline" | "daysmatter";
   searchQuery: string;
   setFilters: (filters: Partial<Filters>) => void;
-  setViewMode: (mode: "list" | "timeline") => void;
+  setViewMode: (mode: "list" | "timeline" | "daysmatter") => void;
   setSearchQuery: (query: string) => void;
   openModal: (modal: keyof ModalState) => void;
   closeModal: (modal: keyof ModalState) => void;
@@ -38,6 +43,10 @@ type CalenState = {
   closeEditTask: () => void;
   openDeleteConfirm: (taskId: string) => void;
   closeDeleteConfirm: () => void;
+  openEditDaysMatter: (itemId: string) => void;
+  closeEditDaysMatter: () => void;
+  openDeleteDaysMatterConfirm: (itemId: string) => void;
+  closeDeleteDaysMatterConfirm: () => void;
   setAuth: (auth: AuthState) => void;
   setSyncStatus: (status: SyncState["status"], message?: string) => void;
   replaceTasks: (tasks: Task[]) => void;
@@ -53,6 +62,12 @@ type CalenState = {
   replaceCategories: (categories: string[]) => void;
   syncCategoriesPending: boolean;
   setSyncCategoriesPending: (pending: boolean) => void;
+  replaceDaysMatterItems: (items: DaysMatterItem[]) => void;
+  updateDaysMatterItems: (items: DaysMatterItem[]) => void;
+  addDaysMatterItem: (item: DaysMatterItem) => void;
+  updateDaysMatterItem: (itemId: string, updates: Partial<DaysMatterItem>) => void;
+  deleteDaysMatterItem: (itemId: string) => void;
+  clearDaysMatterPendingDeletion: (itemId: string) => void;
 };
 
 const defaultFilters: Filters = {
@@ -64,12 +79,14 @@ export const useCalenStore = create<CalenState>()(
   persist(
     (set, get) => ({
       tasks: [],
+      daysMatterItems: [],
       filters: defaultFilters,
-      modals: { task: false, editTask: null, deleteConfirm: null },
+      modals: { task: false, editTask: null, deleteConfirm: null, daysMatter: false, editDaysMatter: null, deleteDaysMatterConfirm: null },
       auth: { status: "guest" },
       sync: { status: "idle" },
       categories: ["Work", "School", "Fitness"],
       pendingDeletions: [],
+      daysMatterPendingDeletions: [],
       viewMode: "list",
       searchQuery: "",
       setFilters: (filters) =>
@@ -173,13 +190,28 @@ export const useCalenStore = create<CalenState>()(
           pendingDeletions: state.pendingDeletions.filter((id) => id !== taskId),
         })),
       openEditTask: (taskId) =>
-        set({ modals: { task: false, editTask: taskId, deleteConfirm: null } }),
+        set((state) => ({
+          modals: {
+            ...state.modals,
+            task: false,
+            editTask: taskId,
+            deleteConfirm: null,
+          },
+        })),
       closeEditTask: () =>
         set((state) => ({ modals: { ...state.modals, editTask: null } })),
       openDeleteConfirm: (taskId) =>
         set((state) => ({ modals: { ...state.modals, deleteConfirm: taskId } })),
       closeDeleteConfirm: () =>
         set((state) => ({ modals: { ...state.modals, deleteConfirm: null } })),
+      openEditDaysMatter: (itemId) =>
+        set({ modals: { task: false, editTask: null, deleteConfirm: null, daysMatter: false, editDaysMatter: itemId, deleteDaysMatterConfirm: null } }),
+      closeEditDaysMatter: () =>
+        set((state) => ({ modals: { ...state.modals, editDaysMatter: null } })),
+      openDeleteDaysMatterConfirm: (itemId) =>
+        set((state) => ({ modals: { ...state.modals, deleteDaysMatterConfirm: itemId } })),
+      closeDeleteDaysMatterConfirm: () =>
+        set((state) => ({ modals: { ...state.modals, deleteDaysMatterConfirm: null } })),
       addCategory: (category) =>
         set((state) => {
           if (state.categories.includes(category)) {
@@ -193,14 +225,61 @@ export const useCalenStore = create<CalenState>()(
       replaceCategories: (categories) => set({ categories }),
       syncCategoriesPending: false,
       setSyncCategoriesPending: (pending) => set({ syncCategoriesPending: pending }),
+      addDaysMatterItem: (item) =>
+        set((state) => ({
+          daysMatterItems: [{ ...item, syncPending: true }, ...state.daysMatterItems],
+        })),
+      updateDaysMatterItem: (itemId, updates) =>
+        set((state) => ({
+          daysMatterItems: state.daysMatterItems.map((item) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  ...updates,
+                  updatedAt: new Date().toISOString(),
+                  syncPending: true,
+                }
+              : item
+          ),
+        })),
+      replaceDaysMatterItems: (items) => set({ daysMatterItems: items }),
+      updateDaysMatterItems: (items) =>
+        set((state) => {
+          const updated = [...state.daysMatterItems];
+          items.forEach((item) => {
+            const index = updated.findIndex((existing) => existing.id === item.id);
+            if (index >= 0) {
+              updated[index] = item;
+            } else {
+              updated.push(item);
+            }
+          });
+          return { daysMatterItems: updated };
+        }),
+      deleteDaysMatterItem: (itemId) =>
+        set((state) => ({
+          daysMatterItems: state.daysMatterItems.filter((item) => item.id !== itemId),
+          daysMatterPendingDeletions: [
+            ...state.daysMatterPendingDeletions,
+            itemId,
+          ],
+        })),
+      clearDaysMatterPendingDeletion: (itemId) =>
+        set((state) => ({
+          daysMatterPendingDeletions: state.daysMatterPendingDeletions.filter(
+            (id) => id !== itemId
+          ),
+        })),
     }),
     {
       name: "calen-storage",
       partialize: (state) => ({
         tasks: state.tasks,
+        daysMatterItems: state.daysMatterItems,
         filters: state.filters,
         categories: state.categories,
         pendingDeletions: state.pendingDeletions,
+        daysMatterPendingDeletions: state.daysMatterPendingDeletions,
         viewMode: state.viewMode,
       }),
     }

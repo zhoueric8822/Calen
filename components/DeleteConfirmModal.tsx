@@ -8,6 +8,7 @@ type DeleteConfirmModalProps = {
   onClose: () => void;
   onConfirm: () => void;
   taskTitle: string;
+  itemType?: "task" | "event";
 };
 
 export const DeleteConfirmModal = ({
@@ -15,12 +16,13 @@ export const DeleteConfirmModal = ({
   onClose,
   onConfirm,
   taskTitle,
+  itemType = "task",
 }: DeleteConfirmModalProps) => {
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Delete task"
+      title={`Delete ${itemType}`}
       footer={
         <div className="flex items-center justify-end gap-2">
           <button
@@ -48,7 +50,7 @@ export const DeleteConfirmModal = ({
           </div>
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-              Are you sure you want to delete this task?
+              Are you sure you want to delete this {itemType}?
             </p>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               <span className="font-semibold">&quot;{taskTitle}&quot;</span> will be permanently deleted. This action cannot be undone.

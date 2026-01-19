@@ -31,6 +31,19 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_client", ["userId", "clientId"]),
+  daysMatter: defineTable({
+    userId: v.id("users"),
+    clientId: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    targetDate: v.string(),
+    type: v.union(v.literal("countdown"), v.literal("countup")),
+    imageUrl: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_client", ["userId", "clientId"]),
 });
 
 

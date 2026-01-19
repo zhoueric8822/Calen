@@ -67,38 +67,9 @@ export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) 
       }`}
       onClick={onClose}
     >
-      {/* Desktop: centered modal */}
-      <div className="hidden md:flex md:items-center md:justify-center md:p-4 h-full">
+      <div className="fixed w-full inset-x-0 bottom-0 flex items-end md:static md:flex md:h-full md:items-center md:justify-center md:p-4">
         <div
-          className="w-full max-w-lg rounded-3xl bg-white shadow-xl dark:bg-zinc-900 transform transition-all duration-300 scale-100"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              {title}
-            </h2>
-            <button
-              className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-white/10"
-              onClick={onClose}
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" weight="bold" />
-            </button>
-          </div>
-          <div className="max-h-[75vh] overflow-y-auto px-6 py-5">{children}</div>
-          {footer ? (
-            <div className="border-t border-zinc-100 px-6 py-4 dark:border-zinc-800">{footer}</div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Mobile: bottom drawer */}
-      <div 
-        className="md:hidden fixed inset-x-0 bottom-0 flex items-end pointer-events-none"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className={`w-full bg-white dark:bg-zinc-900 rounded-t-3xl shadow-xl pointer-events-auto transform ${
+          className={`w-full md:max-w-xl bg-white dark:bg-zinc-900 rounded-t-3xl md:rounded-3xl shadow-xl transform ${
             !isDragging ? "transition-transform duration-300 ease-out" : ""
           } animate-in slide-in-from-bottom`}
           style={{
@@ -106,9 +77,9 @@ export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) 
           }}
           onClick={(event) => event.stopPropagation()}
         >
-          {/* Drag handle */}
+          {/* Drag handle - mobile only */}
           <div
-            className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
+            className="md:hidden flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
             onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
             onTouchEnd={handleDragEnd}
@@ -124,7 +95,7 @@ export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) 
             <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
           </div>
 
-          <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
+          <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               {title}
             </h2>
@@ -136,9 +107,13 @@ export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) 
               <X className="h-4 w-4" weight="bold" />
             </button>
           </div>
-          <div className="max-h-[70dvh] overflow-y-auto px-6 py-5">{children}</div>
+          <div className="max-h-[70dvh] md:max-h-[75vh] overflow-y-auto px-6 py-5">
+            {children}
+          </div>
           {footer ? (
-            <div className="border-t border-zinc-100 px-6 py-4 dark:border-zinc-800">{footer}</div>
+            <div className="border-t border-zinc-100 px-6 py-4 dark:border-zinc-800">
+              {footer}
+            </div>
           ) : null}
         </div>
       </div>

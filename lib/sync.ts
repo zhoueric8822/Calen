@@ -1,9 +1,15 @@
-import type { Task } from "@/lib/types";
+import type { DaysMatterItem, Task } from "@/lib/types";
 
 type SyncActions = {
   setSyncStatus: (status: "idle" | "syncing" | "error", message?: string) => void;
   replaceTasks: (tasks: Task[]) => void;
   updateTasks: (tasks: Task[]) => void;
+};
+
+type DaysMatterSyncActions = {
+  setSyncStatus: (status: "idle" | "syncing" | "error", message?: string) => void;
+  replaceDaysMatterItems: (items: DaysMatterItem[]) => void;
+  updateDaysMatterItems: (items: DaysMatterItem[]) => void;
 };
 
 const postJson = async <T>(url: string, body: unknown) => {
@@ -78,5 +84,61 @@ export const syncTasks = async (tasks: Task[]) => {
 
   const response = await postJson<{ tasks: Task[] }>("/api/sync", { tasks });
   return response.tasks;
+};
+
+export const bootstrapDaysMatterSync = async (
+  actions: DaysMatterSyncActions,
+  localItems: DaysMatterItem[]
+) => {
+  try {
+    actions.setSyncStatus("syncing");
+
+    const daysMatterSync = await getJson<{
+      userExists: boolean;
+      items: DaysMatterItem[];
+    }>("/api/sync/daysmatter");
+
+    if (daysMatterSync.userExists) {
+      const localPending = localItems.filter((item) => item.syncPending);
+      const remoteItems = daysMatterSync.items;
+
+      if (localPending.length) {
+        const synced = await postJson<{ items: DaysMatterItem[] }>(
+          "/api/sync/daysmatter",
+          { items: localPending }
+        );
+        const syncedIds = new Set(synced.items.map((item) => item.id));
+        const otherRemote = remoteItems.filter((item) => !syncedIds.has(item.id));
+        actions.replaceDaysMatterItems([...synced.items, ...otherRemote]);
+      } else {
+        actions.replaceDaysMatterItems(remoteItems);
+      }
+    } else if (localItems.length) {
+      const upload = await postJson<{ items: DaysMatterItem[] }>(
+        "/api/sync/daysmatter",
+        { items: localItems }
+      );
+      actions.replaceDaysMatterItems(upload.items);
+    } else {
+      await postJson("/api/sync/daysmatter", { items: [] });
+    }
+
+    actions.setSyncStatus("idle");
+  } catch (error) {
+    console.error(error);
+    actions.setSyncStatus("error", "Days matter sync failed. Try again.");
+  }
+};
+
+export const syncDaysMatterItems = async (items: DaysMatterItem[]) => {
+  if (!items.length) {
+    return [];
+  }
+
+  const response = await postJson<{ items: DaysMatterItem[] }>(
+    "/api/sync/daysmatter",
+    { items }
+  );
+  return response.items;
 };
 
