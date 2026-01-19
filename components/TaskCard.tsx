@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, Trash } from "@phosphor-icons/react";
+import { isBefore, startOfDay, parseISO } from "date-fns";
 
 import { getCompletionRatio } from "@/lib/priority";
 import type { Task } from "@/lib/types";
@@ -20,6 +21,9 @@ export const TaskCard = ({ task, accentColor }: TaskCardProps) => {
   const openDeleteConfirm = useCalenStore((state) => state.openDeleteConfirm);
   const completion = Math.round(getCompletionRatio(task) * 100);
   const { performDelete } = useTaskDeletion();
+  
+  // Check if task is overdue
+  const isOverdue = !task.completed && isBefore(parseISO(task.deadline), startOfDay(new Date()));
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -36,7 +40,11 @@ export const TaskCard = ({ task, accentColor }: TaskCardProps) => {
   return (
     <div
       onClick={() => openEditTask(task.id)}
-      className="cursor-pointer rounded-3xl border border-zinc-100 bg-white px-5 py-4 shadow-sm transition hover:shadow-md dark:border-white/10 dark:bg-zinc-900"
+      className={`cursor-pointer rounded-3xl border px-5 py-4 shadow-sm transition hover:shadow-md ${
+        isOverdue
+          ? "border-red-500 border-dashed bg-red-50 dark:border-red-500/50 dark:bg-red-950/20"
+          : "border-zinc-100 bg-white dark:border-white/10 dark:bg-zinc-900"
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-2">
@@ -110,7 +118,10 @@ export const TaskCard = ({ task, accentColor }: TaskCardProps) => {
             {task.subtasks.map((subtask) => (
               <button
                 key={subtask.id}
-                onClick={() => toggleSubtask(task.id, subtask.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSubtask(task.id, subtask.id);
+                }}
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                   subtask.completed
                     ? "bg-zinc-900 text-white"
