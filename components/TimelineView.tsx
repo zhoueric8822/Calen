@@ -55,7 +55,7 @@ export const TimelineView = ({ tasks }: TimelineViewProps) => {
   }, [tasks, today]);
 
   return (
-    <div className="relative pl-8 pr-1">
+    <div className="relative pl-8 pr-1 mt-5">
       {/* Vertical timeline line */}
       <div className="absolute left-2 top-0 h-full w-0.5 bg-[#007AFF]/20" />
 

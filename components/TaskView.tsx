@@ -143,7 +143,7 @@ export const TaskView = () => {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 space-y-3 overflow-y-auto px-1 pt-32 pb-6 scrollbar-hide">
+      <div className="flex-1 space-y-3 overflow-y-auto px-1 pt-35 pb-20 scrollbar-hide">
         {viewMode === "timeline" ? (
           <TimelineView tasks={sorted} />
         ) : (
