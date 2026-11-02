@@ -353,6 +353,8 @@ export const DaysMatterModal = () => {
       targetDate: new Date(targetDate).toISOString(),
       type,
       imageUrl: imageUrl.trim() || undefined,
+      // Pause/break state only applies to count-ups
+      ...(type === "countdown" ? { pausedAt: undefined, breakDays: undefined } : {}),
     };
 
     if (isEditing) {
@@ -373,6 +375,7 @@ export const DaysMatterModal = () => {
     <Modal
       isOpen={isModalOpen}
       onClose={handleClose}
+      onSubmit={handleSubmit}
       title={isEditing ? "Edit Event" : "New Days Matter Event"}
       footer={
         <div className="flex items-center justify-between">

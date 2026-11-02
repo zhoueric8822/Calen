@@ -1,15 +1,26 @@
 "use client";
 
-import { Plus, Trash } from "@phosphor-icons/react";
+import { Plus, Trash, X } from "@phosphor-icons/react";
+import { addDays, format, parseISO } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/Modal";
 import type { Subtask, Task } from "@/lib/types";
 import { useCalenStore } from "@/stores/useCalenStore";
 
+const DEFAULT_TIME = "23:59";
+
 const initialSubtasks = (): Subtask[] => [
   { id: crypto.randomUUID(), title: "", completed: false },
 ];
+
+const toDateInput = (date: Date) => format(date, "yyyy-MM-dd");
+
+const QUICK_DATES = [
+  { label: "Due today", offset: 0 },
+  { label: "Due tomorrow", offset: 1 },
+  { label: "Due next week", offset: 7 },
+] as const;
 
 export const TaskModal = () => {
   const isOpen = useCalenStore((state) => state.modals.task);
@@ -21,6 +32,7 @@ export const TaskModal = () => {
   const addTask = useCalenStore((state) => state.addTask);
   const updateTask = useCalenStore((state) => state.updateTask);
   const addCategory = useCalenStore((state) => state.addCategory);
+  const removeCategory = useCalenStore((state) => state.removeCategory);
 
   const editingTask = editTaskId
     ? tasks.find((t) => t.id === editTaskId)
@@ -30,20 +42,23 @@ export const TaskModal = () => {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [dateValue, setDateValue] = useState("");
+  const [timeValue, setTimeValue] = useState(DEFAULT_TIME);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [importance, setImportance] = useState(3);
   const [subtasks, setSubtasks] = useState<Subtask[]>(initialSubtasks);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
+  const [manageCategories, setManageCategories] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [focusSubtaskId, setFocusSubtaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (editingTask) {
       setTitle(editingTask.title);
       setDescription(editingTask.description ?? "");
-      setDeadline(
-        new Date(editingTask.deadline).toISOString().slice(0, 16)
-      );
+      const existing = parseISO(editingTask.deadline);
+      setDateValue(toDateInput(existing));
+      setTimeValue(format(existing, "HH:mm"));
       setSelectedCategories(editingTask.categories);
       setImportance(editingTask.importance);
       setSubtasks(
@@ -57,30 +72,33 @@ export const TaskModal = () => {
   }, [editingTask]);
 
   const canSubmit = useMemo(
-    () => title.trim().length > 0 && deadline.length > 0,
-    [title, deadline]
+    () => title.trim().length > 0 && dateValue.length > 0 && timeValue.length > 0,
+    [title, dateValue, timeValue]
   );
 
   const reset = () => {
     setTitle("");
     setDescription("");
-    setDeadline("");
+    setDateValue("");
+    setTimeValue(DEFAULT_TIME);
     setSelectedCategories([]);
     setImportance(3);
     setSubtasks(initialSubtasks);
     setShowCategoryInput(false);
+    setManageCategories(false);
     setNewCategoryName("");
+    setFocusSubtaskId(null);
   };
 
-  const handleDeadlineChange = (value: string) => {
-    // If user only selected a date (not time), default to 23:59
-    if (value.length === 10) {
-      // Format: YYYY-MM-DD, add 23:59
-      setDeadline(value + "T23:59");
-    } else {
-      setDeadline(value);
-    }
-  };
+  const quickDates = useMemo(() => {
+    const now = new Date();
+    return QUICK_DATES.map((q) => ({
+      ...q,
+      value: toDateInput(addDays(now, q.offset)),
+    }));
+    // Recompute whenever the modal opens so "today" is never stale
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isModalOpen]);
 
   const handleClose = () => {
     reset();
@@ -97,7 +115,7 @@ export const TaskModal = () => {
     const taskData = {
       title: title.trim(),
       description: description.trim() || undefined,
-      deadline: new Date(deadline).toISOString(),
+      deadline: new Date(`${dateValue}T${timeValue}`).toISOString(),
       categories: selectedCategories,
       importance,
       subtasks: subtasks.filter((subtask) => subtask.title.trim().length > 0),
@@ -127,6 +145,22 @@ export const TaskModal = () => {
     setShowCategoryInput(false);
   };
 
+  const handleRemoveCategory = (category: string) => {
+    const used = tasks.filter((t) => t.categories.includes(category)).length;
+    const message = used
+      ? `Remove "${category}"? It will also be taken off ${used} task${used === 1 ? "" : "s"}.`
+      : `Remove "${category}"?`;
+    if (!window.confirm(message)) return;
+    removeCategory(category);
+    setSelectedCategories((prev) => prev.filter((c) => c !== category));
+  };
+
+  const addSubtaskAfter = (index: number) => {
+    const next: Subtask = { id: crypto.randomUUID(), title: "", completed: false };
+    setSubtasks((prev) => [...prev.slice(0, index + 1), next, ...prev.slice(index + 1)]);
+    setFocusSubtaskId(next.id);
+  };
+
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
       prev.includes(category)
@@ -139,11 +173,15 @@ export const TaskModal = () => {
     <Modal
       isOpen={isModalOpen}
       onClose={handleClose}
+      onSubmit={handleSubmit}
       title={isEditing ? "Edit task" : "Add new task"}
       footer={
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            Tasks are ranked by deadline and importance.
+            <kbd className="rounded bg-zinc-100 px-1 py-0.5 font-sans dark:bg-white/10">
+              Ctrl/⌘ ↵
+            </kbd>{" "}
+            to save
           </p>
           <button
             className="rounded-full bg-[#007AFF] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0066d6] disabled:opacity-40"
@@ -183,24 +221,67 @@ export const TaskModal = () => {
             <label className="text-xs font-semibold uppercase text-zinc-400 dark:text-zinc-500">
               Deadline
             </label>
-            <input
-              type="datetime-local"
-              className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
-              value={deadline}
-              onChange={(event) => handleDeadlineChange(event.target.value)}
-            />
+            <div className="flex gap-2">
+              <input
+                type="time"
+                aria-label="Deadline time"
+                className="w-28 shrink-0 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
+                value={timeValue}
+                onChange={(event) => setTimeValue(event.target.value)}
+              />
+              <input
+                type="date"
+                aria-label="Deadline date"
+                className="min-w-0 flex-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
+                value={dateValue}
+                onChange={(event) => setDateValue(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {quickDates.map((q) => (
+                <button
+                  key={q.label}
+                  type="button"
+                  onClick={() => setDateValue(q.value)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    dateValue === q.value
+                      ? "bg-[#007AFF] text-white"
+                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/20"
+                  }`}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold uppercase text-zinc-400 dark:text-zinc-500">
                 Categories
               </label>
-              <button
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/20"
-                onClick={() => setShowCategoryInput(true)}
-              >
-                <Plus className="h-4 w-4" weight="bold" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {categories.length > 0 && (
+                  <button
+                    type="button"
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      manageCategories
+                        ? "bg-red-500 text-white"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/20"
+                    }`}
+                    onClick={() => setManageCategories((prev) => !prev)}
+                  >
+                    {manageCategories ? "Done" : "Edit"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/20"
+                  onClick={() => setShowCategoryInput(true)}
+                  aria-label="Add category"
+                >
+                  <Plus className="h-4 w-4" weight="bold" />
+                </button>
+              </div>
             </div>
             {showCategoryInput && (
               <div className="flex gap-2">
@@ -224,20 +305,33 @@ export const TaskModal = () => {
               </div>
             )}
             <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => toggleCategory(cat)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                    selectedCategories.includes(cat)
-                      ? "bg-[#007AFF] text-white"
-                      : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+              {categories.map((cat) =>
+                manageCategories ? (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleRemoveCategory(cat)}
+                    className="flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-500/30 dark:bg-red-950/20 dark:text-red-400"
+                    aria-label={`Remove category ${cat}`}
+                  >
+                    {cat}
+                    <X className="h-3.5 w-3.5" weight="bold" />
+                  </button>
+                ) : (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      selectedCategories.includes(cat)
+                        ? "bg-[#007AFF] text-white"
+                        : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                )
+              )}
             </div>
             {selectedCategories.length === 0 && (
               <p className="text-xs text-zinc-400 dark:text-zinc-500">
@@ -252,18 +346,21 @@ export const TaskModal = () => {
           </label>
           <input
             type="range"
-            min={1}
-            max={5}
-            step={1}
+            min={0}
+            max={10}
+            step={0.5}
             value={importance}
             onChange={(event) => setImportance(Number(event.target.value))}
             className="w-full"
           />
           <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
             <span>Low</span>
-            <span className="font-semibold">{importance}</span>
+            <span className="font-semibold">{Number(importance.toFixed(1))}</span>
             <span>High</span>
           </div>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+            Dragging a task to reorder it adjusts this for you.
+          </p>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -272,12 +369,8 @@ export const TaskModal = () => {
             </label>
             <button
               className="flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
-              onClick={() =>
-                setSubtasks((prev) => [
-                  ...prev,
-                  { id: crypto.randomUUID(), title: "", completed: false },
-                ])
-              }
+              type="button"
+              onClick={() => addSubtaskAfter(subtasks.length - 1)}
             >
               <Plus className="h-3 w-3" weight="bold" />
               Add
@@ -293,6 +386,14 @@ export const TaskModal = () => {
                   className="flex-1 bg-transparent text-sm text-zinc-800 outline-none dark:text-zinc-200"
                   placeholder={`Subtask ${index + 1}`}
                   value={subtask.title}
+                  autoFocus={subtask.id === focusSubtaskId}
+                  onKeyDown={(event) => {
+                    // Plain Enter adds the next subtask; Ctrl/⌘+Enter saves (handled by Modal)
+                    if (event.key !== "Enter" || event.metaKey || event.ctrlKey) return;
+                    if (event.nativeEvent.isComposing) return;
+                    event.preventDefault();
+                    if (subtask.title.trim()) addSubtaskAfter(index);
+                  }}
                   onChange={(event) =>
                     setSubtasks((prev) =>
                       prev.map((item) =>

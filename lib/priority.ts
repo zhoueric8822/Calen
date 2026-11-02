@@ -66,3 +66,55 @@ export const getAccentColor = (rank: number, total: number) => {
 };
 
 
+
+export const IMPORTANCE_MIN = 0;
+export const IMPORTANCE_MAX = 10;
+
+/** Active tasks, highest score first. Completed tasks are left out. */
+export const sortActiveByScore = (tasks: Task[]) =>
+  tasks
+    .filter((task) => !task.completed)
+    .sort((a, b) => getTaskScore(b) - getTaskScore(a));
+
+/**
+ * The importance a task needs for its score to equal `targetScore`.
+ * Score is linear in importance, so this is a direct solve rather than a search.
+ */
+const importanceForScore = (task: Task, targetScore: number) => {
+  const withZero = getTaskScore({ ...task, importance: 0 });
+  const penaltyPerPoint = task.subtasks.length
+    ? getCompletionRatio(task) * 10
+    : 0;
+  const slope = 200 - penaltyPerPoint;
+  const raw = (targetScore - withZero) / slope;
+  const clamped = Math.min(IMPORTANCE_MAX, Math.max(IMPORTANCE_MIN, raw));
+  return Math.round(clamped * 1000) / 1000;
+};
+
+/**
+ * Importance for `moved` so that it sorts at `index` among `others`
+ * (already ordered highest-score first, and not containing `moved`).
+ * Pass `moved` with its new deadline if the drop also changes the date.
+ */
+export const importanceForPosition = (
+  moved: Task,
+  others: Task[],
+  index: number
+) => {
+  const above = others[index - 1];
+  const below = others[index];
+  const GAP = 25;
+
+  let target: number;
+  if (above && below) {
+    target = (getTaskScore(above) + getTaskScore(below)) / 2;
+  } else if (above) {
+    target = getTaskScore(above) - GAP;
+  } else if (below) {
+    target = getTaskScore(below) + GAP;
+  } else {
+    return moved.importance;
+  }
+
+  return importanceForScore(moved, target);
+};

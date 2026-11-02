@@ -28,7 +28,7 @@ export const useCategorySync = () => {
 
         if (response.ok) {
           const data = await response.json();
-          if (data.categories && data.categories.length > 0) {
+          if (Array.isArray(data.categories)) {
             replaceCategories(data.categories);
           }
         }

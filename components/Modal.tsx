@@ -9,9 +9,18 @@ type ModalProps = {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  /** Called on Ctrl/Cmd + Enter while the modal is open. */
+  onSubmit?: () => void;
 };
 
-export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) => {
+export const Modal = ({
+  isOpen,
+  title,
+  onClose,
+  children,
+  footer,
+  onSubmit,
+}: ModalProps) => {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startY = useRef(0);
@@ -22,11 +31,18 @@ export const Modal = ({ isOpen, title, onClose, children, footer }: ModalProps) 
     const handle = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
+      } else if (
+        event.key === "Enter" &&
+        (event.metaKey || event.ctrlKey) &&
+        onSubmit
+      ) {
+        event.preventDefault();
+        onSubmit();
       }
     };
     window.addEventListener("keydown", handle);
     return () => window.removeEventListener("keydown", handle);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, onSubmit]);
 
   const handleDragStart = (clientY: number) => {
     startY.current = clientY;
