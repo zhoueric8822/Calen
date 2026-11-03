@@ -25,6 +25,10 @@ export type DaysMatterItem = {
   description?: string;
   targetDate: string;
   type: "countdown" | "countup";
+  /** Count-ups only: when the count was paused/terminated. Unset while running. */
+  pausedAt?: string;
+  /** Count-ups only: days to subtract from the count (accumulated break periods). */
+  breakDays?: number;
   imageUrl?: string;
   createdAt: string;
   updatedAt?: string;

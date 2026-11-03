@@ -59,6 +59,7 @@ type CalenState = {
   addSubtask: (taskId: string, title: string) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   addCategory: (category: string) => void;
+  removeCategory: (category: string) => void;
   replaceCategories: (categories: string[]) => void;
   syncCategoriesPending: boolean;
   setSyncCategoriesPending: (pending: boolean) => void;
@@ -222,6 +223,25 @@ export const useCalenStore = create<CalenState>()(
             syncCategoriesPending: true,
           };
         }),
+      removeCategory: (category) =>
+        set((state) => ({
+          categories: state.categories.filter((c) => c !== category),
+          // Strip the tag from tasks too, so it doesn't linger in filters
+          tasks: state.tasks.map((task) =>
+            task.categories.includes(category)
+              ? {
+                  ...task,
+                  categories: task.categories.filter((c) => c !== category),
+                  syncPending: true,
+                }
+              : task
+          ),
+          filters:
+            state.filters.category === category
+              ? { ...state.filters, category: "all" }
+              : state.filters,
+          syncCategoriesPending: true,
+        })),
       replaceCategories: (categories) => set({ categories }),
       syncCategoriesPending: false,
       setSyncCategoriesPending: (pending) => set({ syncCategoriesPending: pending }),

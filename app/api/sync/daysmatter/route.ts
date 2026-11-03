@@ -12,6 +12,8 @@ type ConvexDaysMatterItem = {
   description?: string;
   targetDate: string;
   type: "countdown" | "countup";
+  pausedAt?: string;
+  breakDays?: number;
   imageUrl?: string;
   createdAt: string;
   updatedAt?: string;
@@ -25,6 +27,8 @@ const mapDaysMatterFromConvex = (
   description: item.description ?? undefined,
   targetDate: item.targetDate,
   type: item.type,
+  pausedAt: item.pausedAt ?? undefined,
+  breakDays: item.breakDays ?? undefined,
   imageUrl: item.imageUrl ?? undefined,
   createdAt: item.createdAt,
   updatedAt: item.updatedAt ?? undefined,
@@ -92,6 +96,8 @@ export const POST = async (request: Request) => {
       description: item.description,
       targetDate: item.targetDate,
       type: item.type,
+      pausedAt: item.pausedAt,
+      breakDays: item.breakDays,
       imageUrl: item.imageUrl,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,

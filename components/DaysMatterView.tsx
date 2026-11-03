@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { parseISO, format } from "date-fns";
 import { CaretLeft, CaretRight, Trash, PencilSimple } from "@phosphor-icons/react";
+import { CountupControls } from "@/components/CountupControls";
+import { getDaysDisplay as computeDaysDisplay } from "@/lib/daysMatter";
 import type { DaysMatterItem } from "@/lib/types";
 import { useCalenStore } from "@/stores/useCalenStore";
 
@@ -64,21 +66,8 @@ export const DaysMatterView = ({ items }: DaysMatterViewProps) => {
     setTouchEnd(0);
   };
 
-  const getDaysDisplay = (item: DaysMatterItem) => {
-    const targetDate = parseISO(item.targetDate);
-    const daysDiff = differenceInDays(targetDate, today);
-    
-    if (item.type === "countdown") {
-      if (daysDiff === 0) return { number: 0, label: "Today!" };
-      if (daysDiff < 0) return { number: Math.abs(daysDiff), label: "days ago" };
-      return { number: daysDiff, label: daysDiff === 1 ? "day left" : "days left" };
-    } else {
-      const daysElapsed = -daysDiff;
-      if (daysElapsed === 0) return { number: 0, label: "Today!" };
-      if (daysElapsed < 0) return { number: Math.abs(daysElapsed), label: "days until" };
-      return { number: daysElapsed, label: daysElapsed === 1 ? "day" : "days" };
-    }
-  };
+  const getDaysDisplay = (item: DaysMatterItem) =>
+    computeDaysDisplay(item, today);
 
   // Get the highlighted item
   const highlightedItem = items[highlightIndex] || items[0];
@@ -147,6 +136,7 @@ export const DaysMatterView = ({ items }: DaysMatterViewProps) => {
               <p className="mt-4 text-sm text-white/60">
                 {format(parseISO(highlightedItem.targetDate), "EEEE, MMMM d, yyyy")}
               </p>
+              <CountupControls item={highlightedItem} variant="hero" />
             </div>
           )}
 
@@ -277,6 +267,7 @@ export const DaysMatterView = ({ items }: DaysMatterViewProps) => {
                         </p>
                       </div>
                     </div>
+                    <CountupControls item={item} variant="card" />
                   </div>
                 </div>
               );
@@ -338,9 +329,12 @@ export const DaysMatterView = ({ items }: DaysMatterViewProps) => {
                   {highlightedDisplay.label}
                 </span>
               </div>
-              <p className="mt-3 text-xs text-white/60 mb-5">
+              <p className="mt-3 text-xs text-white/60">
                 {format(parseISO(highlightedItem.targetDate), "EEEE, MMMM d, yyyy")}
               </p>
+              <div className="mb-5">
+                <CountupControls item={highlightedItem} variant="hero" />
+              </div>
             </div>
 
             {/* Navigation dots only - no arrows on mobile */}
@@ -452,6 +446,7 @@ export const DaysMatterView = ({ items }: DaysMatterViewProps) => {
                         </p>
                       </div>
                     </div>
+                    <CountupControls item={item} variant="card" />
                   </div>
                 </div>
               );

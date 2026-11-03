@@ -38,6 +38,8 @@ export default defineSchema({
     description: v.optional(v.string()),
     targetDate: v.string(),
     type: v.union(v.literal("countdown"), v.literal("countup")),
+    pausedAt: v.optional(v.string()),
+    breakDays: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
     createdAt: v.string(),
     updatedAt: v.optional(v.string()),

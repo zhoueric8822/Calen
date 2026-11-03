@@ -4,12 +4,32 @@ import { List, Rows, Heart, Plus, MagnifyingGlass } from "@phosphor-icons/react"
 import { isBefore, parseISO } from "date-fns";
 import Fuse from "fuse.js";
 import { useMemo } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 import { FilterBar } from "@/components/FilterBar";
+import { SortableTask } from "@/components/SortableTask";
 import { TaskCard } from "@/components/TaskCard";
 import { TimelineView } from "@/components/TimelineView";
 import { DaysMatterView } from "@/components/DaysMatterView";
-import { getAccentColor, getTaskScore } from "@/lib/priority";
+import {
+  getAccentColor,
+  getTaskScore,
+  importanceForPosition,
+} from "@/lib/priority";
 import { useCalenStore } from "@/stores/useCalenStore";
 
 export const TaskView = () => {
@@ -68,6 +88,39 @@ export const TaskView = () => {
   const archivedTasks = sorted.filter((task) => task.completed);
 
   const deleteTask = useCalenStore((state) => state.deleteTask);
+  const updateTask = useCalenStore((state) => state.updateTask);
+
+  // One colour per task, ranked across everything active, so a task keeps the
+  // same colour in the list and timeline views.
+  const colorById = useMemo(() => {
+    const map = new Map<string, string>();
+    activeTasks.forEach((task, index) =>
+      map.set(task.id, getAccentColor(index, activeTasks.length))
+    );
+    return map;
+  }, [activeTasks]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  // Dropping a task re-computes its importance so it sorts exactly where it
+  // was dropped. Importance is what's synced, so other devices follow.
+  const handleListDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const oldIndex = activeTasks.findIndex((t) => t.id === active.id);
+    const newIndex = activeTasks.findIndex((t) => t.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const reordered = arrayMove(activeTasks, oldIndex, newIndex);
+    const moved = reordered[newIndex];
+    const others = reordered.filter((t) => t.id !== moved.id);
+    const importance = importanceForPosition(moved, others, newIndex);
+    if (importance !== moved.importance) {
+      updateTask(moved.id, { importance });
+    }
+  };
 
   const handleClearArchived = () => {
     if (archivedTasks.length === 0) return;
@@ -174,18 +227,31 @@ export const TaskView = () => {
         {viewMode === "daysmatter" ? (
           <DaysMatterView items={daysMatterItems} />
         ) : viewMode === "timeline" ? (
-          <TimelineView tasks={sorted} />
+          <TimelineView tasks={sorted} colorById={colorById} />
         ) : (
           <div className="space-y-3">
             {/* Active Tasks */}
             {activeTasks.length ? (
-              activeTasks.map((task, index) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  accentColor={getAccentColor(index, activeTasks.length)}
-                />
-              ))
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleListDragEnd}
+              >
+                <SortableContext
+                  items={activeTasks.map((t) => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {activeTasks.map((task) => (
+                      <SortableTask
+                        key={task.id}
+                        task={task}
+                        accentColor={colorById.get(task.id) ?? "hsl(30 85% 60%)"}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             ) : (
               <div className="rounded-3xl border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-zinc-400 dark:border-white/10 dark:bg-zinc-900">
                 No tasks yet. Add one to start organizing your week.
